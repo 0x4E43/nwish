@@ -1,10 +1,22 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
+	"github.com/charmbracelet/ssh"
+	"github.com/charmbracelet/wish"
+	"github.com/charmbracelet/wish/activeterm"
+	"github.com/charmbracelet/wish/bubbletea"
+	"github.com/charmbracelet/wish/logging"
 )
 
 type model struct {
@@ -100,10 +112,66 @@ func initialModel() model {
 	}
 }
 
+const (
+	HOST = "localhost"
+	PORT = "8080"
+)
+
 func main() {
 	fp := tea.NewProgram(initialModel())
 	if _, err := fp.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
 	}
+
+	//create a new wish server
+	serv, err := wish.NewServer(
+		wish.WithAddress(net.JoinHostPort(HOST, PORT)),
+		wish.WithHostKeyPath(".ssh/id_ed25519"),
+		wish.WithMiddleware(
+			bubbletea.Middleware(teaHandler),
+			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
+			logging.Middleware(),
+		),
+	)
+	if err != nil {
+		log.Error("Could not start server", "error", err)
+	}
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	log.Info("Starting SSH server", "host", HOST, "port", PORT)
+	go func() {
+		if err = serv.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+			log.Error("Could not start server", "error", err)
+			done <- nil
+		}
+	}()
+
+	<-done
+	log.Info("Stopping SSH server")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer func() { cancel() }()
+	if err := serv.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+		log.Error("Could not stop server", "error", err)
+	}
+}
+
+// handles the incoming ssh.Session. Here we just grab the terminal info and
+// pass it to the new model. You can also return tea.ProgramOptions (such as
+// tea.WithAltScreen) on a session by session basis.
+func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+	// pty, _, _ := s.Pty() //TODO: WTF is this
+
+	// renderer := bubbletea.MakeRenderer(s)
+	// txtStyle := renderer.NewStyle().Foreground(lipgloss.Color("10"))
+	// quitStyle := renderer.NewStyle().Foreground(lipgloss.Color("8"))
+
+	// bg := "light"
+	// if renderer.HasDarkBackground() {
+	// 	bg = "dark"
+	// }
+
+	m := initialModel()
+	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
