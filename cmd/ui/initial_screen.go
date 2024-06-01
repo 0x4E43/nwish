@@ -65,9 +65,26 @@ func (m BaseScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
+		k := msg.String()
+		if k == "ctrl+c" || k == "q" || k == "esc" {
 			return m, tea.Quit
 		}
+
+		if k == "a" || k == "A" {
+			log.Println("A Pressed")
+			m.viewport.SetContent("A Pressed")
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+			return m, tea.Batch(cmds...)
+		}
+		if k == "b" || k == "B" {
+			log.Println("B Pressed")
+			m.viewport.SetContent("B Pressed")
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+			return m, tea.Batch(cmds...)
+		}
+
 	case tea.WindowSizeMsg:
 		headerHeight := lipgloss.Height(m.headerView())
 		footerHeight := lipgloss.Height(m.footerView())
