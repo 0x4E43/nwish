@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/0x4E43/nwish/cmd/ui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
@@ -118,11 +119,6 @@ const (
 )
 
 func main() {
-	fp := tea.NewProgram(initialModel())
-	if _, err := fp.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
-	}
 
 	//create a new wish server
 	serv, err := wish.NewServer(
@@ -161,7 +157,9 @@ func main() {
 // pass it to the new model. You can also return tea.ProgramOptions (such as
 // tea.WithAltScreen) on a session by session basis.
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	// pty, _, _ := s.Pty() //TODO: WTF is this
+
+	//Create a psedo terminal
+	// pty, _, _ := s.Pty()
 
 	// renderer := bubbletea.MakeRenderer(s)
 	// txtStyle := renderer.NewStyle().Foreground(lipgloss.Color("10"))
@@ -172,6 +170,6 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	// 	bg = "dark"
 	// }
 
-	m := initialModel()
+	m := ui.SpinnerModel()
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
