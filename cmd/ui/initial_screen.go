@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const useHighPerformanceRenderer = true
+const useHighPerformanceRenderer = false
 
 var (
 	titleStyle = func() lipgloss.Style {
@@ -24,6 +24,15 @@ var (
 		b := lipgloss.RoundedBorder()
 		b.Left = "┤"
 		return titleStyle.Copy().BorderStyle(b)
+	}()
+
+	navStyle = func() lipgloss.Style {
+		// b := lipgloss.NormalBorder().Bottom
+		return lipgloss.NewStyle().MarginRight(10).Foreground(lipgloss.Color("#B2BEB5"))
+	}()
+
+	navStyleHl = func() lipgloss.Style {
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF5733"))
 	}()
 )
 
@@ -45,7 +54,7 @@ func (m BaseScreenModel) View() string {
 	}
 	log.Println(" Ready")
 
-	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+	return fmt.Sprintf("%s\n%s\n%s\n%s", m.headerView(), m.navView(), m.viewport.View(), m.footerView())
 }
 
 func (m BaseScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -54,8 +63,6 @@ func (m BaseScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
-	log.Println("Message", msg)
-	log.Println("Length of content", len(m.content))
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
@@ -76,7 +83,7 @@ func (m BaseScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
 			m.viewport.YPosition = headerHeight
 			m.viewport.HighPerformanceRendering = useHighPerformanceRenderer
-			m.viewport.SetContent(m.content)
+			// m.viewport.SetContent(m.content)
 			m.ready = true
 
 			// This is only necessary for high performance rendering, which in
@@ -89,7 +96,6 @@ func (m BaseScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.viewport.Width = msg.Width
 			m.viewport.Height = msg.Height - verticalMarginHeight
-			m.viewport.SetContent(m.content)
 		}
 
 		if useHighPerformanceRenderer {
@@ -114,6 +120,22 @@ func (m BaseScreenModel) headerView() string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
 }
 
+func (m BaseScreenModel) navView() string {
+	aboutLnk := navStyleHl.Render("(a)")
+	aboutTxt := navStyle.Render(" About")
+
+	blogLnk := navStyleHl.Render("(b)")
+	blogTxt := navStyle.Render(" Blogs")
+
+	projLnk := navStyleHl.Render("(p)")
+	projTxt := navStyle.Render(" Projects")
+
+	repoLnk := navStyleHl.Render("(g)")
+	repoTxt := navStyle.Render(" Active Repos")
+
+	return lipgloss.JoinHorizontal(lipgloss.Center, aboutLnk, aboutTxt, blogLnk, blogTxt, projLnk, projTxt, repoLnk, repoTxt)
+}
+
 func (m BaseScreenModel) footerView() string {
 	info := infoStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
 	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(info)))
@@ -125,27 +147,6 @@ func max(a, b int) int {
 		return a
 	}
 	return b
-}
-
-func RenderMain() BaseScreenModel {
-	content, err := os.ReadFile("/home/nimai/nwish/md/info.md")
-	if err != nil {
-		fmt.Println("could not load file:", err)
-		os.Exit(1)
-	}
-
-	p := tea.NewProgram(
-		BaseScreenModel{content: string(content)},
-		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
-		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
-	)
-
-	if _, err := p.Run(); err != nil {
-		fmt.Println("could not run program:", err)
-		os.Exit(1)
-	}
-
-	return BaseScreenModel{content: string(content)}
 }
 
 func RenderScreen(term string) BaseScreenModel {

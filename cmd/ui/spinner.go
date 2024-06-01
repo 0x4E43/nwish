@@ -48,7 +48,7 @@ func (spn SpinerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			spn.quitting = true
 			return spn, tea.Quit
 		case "c", "C":
-			return RenderMain(), tea.Quit
+			return RenderScreen(""), tea.Quit
 		default:
 			return spn, nil
 		}
