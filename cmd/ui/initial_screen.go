@@ -17,7 +17,7 @@ var (
 	titleStyle = func() lipgloss.Style {
 		b := lipgloss.RoundedBorder()
 		b.Right = "├"
-		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1)
+		return lipgloss.NewStyle().PaddingTop(3).MarginTop(5).BorderStyle(b).Padding(0, 1)
 	}()
 
 	infoStyle = func() lipgloss.Style {
@@ -33,6 +33,10 @@ var (
 
 	navStyleHl = func() lipgloss.Style {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("#FF5733"))
+	}()
+
+	tBarStyle = func() lipgloss.Style {
+		return lipgloss.NewStyle().MarginTop(5)
 	}()
 )
 
@@ -54,7 +58,7 @@ func (m BaseScreenModel) View() string {
 	}
 	log.Println(" Ready")
 
-	return fmt.Sprintf("%s\n%s\n%s\n%s", m.headerView(), m.navView(), m.viewport.View(), m.footerView())
+	return fmt.Sprintf("%s\n\n%s\n\n\n%s\n%s", m.headerView(), m.navView(), m.viewport.View(), m.footerView())
 }
 
 func (m BaseScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -71,18 +75,15 @@ func (m BaseScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if k == "a" || k == "A" {
+
 			log.Println("A Pressed")
 			m.viewport.SetContent("A Pressed")
-			m.viewport, cmd = m.viewport.Update(msg)
-			cmds = append(cmds, cmd)
-			return m, tea.Batch(cmds...)
+			return m, tea.ClearScrollArea
 		}
 		if k == "b" || k == "B" {
 			log.Println("B Pressed")
 			m.viewport.SetContent("B Pressed")
-			m.viewport, cmd = m.viewport.Update(msg)
-			cmds = append(cmds, cmd)
-			return m, tea.Batch(cmds...)
+			return m, tea.ClearScrollArea
 		}
 
 	case tea.WindowSizeMsg:
@@ -133,7 +134,7 @@ func (m BaseScreenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m BaseScreenModel) headerView() string {
 	title := titleStyle.Render("Nimai C. (Dev)")
-	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
+	line := tBarStyle.Render(strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title))))
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
 }
 
@@ -155,7 +156,7 @@ func (m BaseScreenModel) navView() string {
 
 func (m BaseScreenModel) footerView() string {
 	info := infoStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
-	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(info)))
+	line := tBarStyle.Render(strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(info))))
 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
 }
 
